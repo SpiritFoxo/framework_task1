@@ -1,62 +1,59 @@
 using Microsoft.AspNetCore.Http.Json;
-using System.Text.Json.Serialization;
 using Pr1.MinWebService.Domain;
 using Pr1.MinWebService.Errors;
 using Pr1.MinWebService.Middlewares;
 using Pr1.MinWebService.Services;
+using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Настройка сериализации, чтобы ответы были компактнее
 builder.Services.Configure<JsonOptions>(options =>
 {
-    options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
+	options.SerializerOptions.DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull;
 });
 
-builder.Services.AddSingleton<IItemRepository, InMemoryItemRepository>();
+builder.Services.AddSingleton<IDisciplineRepository, InMemoryDisciplineRepository>();
 
 var app = builder.Build();
 
-// Конвейер обработки запросов
 app.UseMiddleware<RequestIdMiddleware>();
-app.UseMiddleware<ErrorHandlingMiddleware>();
 app.UseMiddleware<TimingAndLogMiddleware>();
+app.UseMiddleware<ErrorHandlingMiddleware>();
 
-// Точка доступа для чтения списка
-app.MapGet("/api/items", (IItemRepository repo) =>
+// GET /api/disciplines
+app.MapGet("/api/disciplines", (IDisciplineRepository repo) =>
+    Results.Ok(repo.GetAll()));
+
+// GET /api/disciplines/{id}
+app.MapGet("/api/disciplines/{id:guid}", (Guid id, IDisciplineRepository repo) =>
 {
-    return Results.Ok(repo.GetAll());
+    var discipline = repo.GetById(id);
+    if (discipline is null)
+        throw new NotFoundException("Дисциплина не найдена");
+    return Results.Ok(discipline);
 });
 
-// Точка доступа для чтения по идентификатору
-app.MapGet("/api/items/{id:guid}", (Guid id, IItemRepository repo) =>
+// POST /api/disciplines
+app.MapPost("/api/disciplines", (HttpContext ctx, CreateDisciplineRequest request, IDisciplineRepository repo) =>
 {
-    var item = repo.GetById(id);
-    if (item is null)
-        throw new NotFoundException("Элемент не найден");
+	if (string.IsNullOrWhiteSpace(request.Name) || request.Name.Trim().Length is < 5 or > 150)
+    	throw new ValidationException("The discipline name must be between 5 and 150 characters.");
 
-    return Results.Ok(item);
-});
+	if (string.IsNullOrWhiteSpace(request.Lecturer) || request.Lecturer.Trim().Length is < 3 or > 100)
+		throw new ValidationException("The lecturer's full name must be between 3 and 100 characters.");
 
-// Точка доступа для создания
-app.MapPost("/api/items", (HttpContext ctx, CreateItemRequest request, IItemRepository repo) =>
-{
-    if (string.IsNullOrWhiteSpace(request.Name))
-        throw new ValidationException("Поле name не должно быть пустым");
+	if (request.StudentCount < 0)
+		throw new ValidationException("The number of students cannot be negative.");
 
-    if (request.Price < 0)
-        throw new ValidationException("Поле price не может быть отрицательным");
+	if (request.StudentCount > 1000)
+		throw new ValidationException("The number of students cannot exceed 1000.");
 
-    var created = repo.Create(request.Name.Trim(), request.Price);
-
-    // Адрес созданного ресурса без привязки к конкретному хосту
-    var location = $"/api/items/{created.Id}";
+	var created = repo.Create(request.Name.Trim(), request.Lecturer.Trim(), request.StudentCount);
+    var location = $"/api/disciplines/{created.Id}";
     ctx.Response.Headers.Location = location;
-
     return Results.Created(location, created);
 });
 
 app.Run();
 
-// Нужен для проекта с испытаниями
 public partial class Program { }

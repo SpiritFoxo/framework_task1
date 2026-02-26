@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
 
 namespace Pr1.MinWebService.Services;
@@ -6,12 +7,13 @@ namespace Pr1.MinWebService.Services;
 /// <summary>
 /// Генерация и хранение идентификатора запроса.
 /// </summary>
-public static class RequestId
+public static partial class RequestId
 {
     private const string ItemKey = "request_id";
     private const string HeaderName = "X-Request-Id";
 
-    private static readonly Regex Allowed = new("^[a-zA-Z0-9\-]{1,64}$", RegexOptions.Compiled);
+    [GeneratedRegex("^[a-zA-Z0-9\\-]{1,64}$", RegexOptions.Compiled)]
+    private static partial Regex Allowed();
 
     public static string GetOrCreate(HttpContext context)
     {
@@ -19,7 +21,7 @@ public static class RequestId
             return s;
 
         var candidate = context.Request.Headers[HeaderName].FirstOrDefault();
-        var requestId = !string.IsNullOrWhiteSpace(candidate) && Allowed.IsMatch(candidate!)
+        var requestId = !string.IsNullOrWhiteSpace(candidate) && Allowed().IsMatch(candidate!)
             ? candidate!
             : Guid.NewGuid().ToString("N");
 
