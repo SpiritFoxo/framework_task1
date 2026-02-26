@@ -15,7 +15,7 @@
 
 ```bash
 # 1. Клонирование + сборка + запуск
-git clone https://github.com/твой-логин/framework_task1.git
+git clone https://github.com/SpiritFoxo/framework_task1.git
 cd framework_task1
 docker build -t discipline-service .
 docker run -d --name discipline-app -p 54254:54254 discipline-service
