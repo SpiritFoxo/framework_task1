@@ -25,7 +25,7 @@ docker run -d --name discipline-app -p 54254:54254 discipline-service
 ### 1. Создание дисциплины
 
 ```bash
-curl -X POST http://localhost:8080/api/disciplines \
+curl -X POST http://localhost:54254/api/disciplines \
   -H "Content-Type: application/json" \
   -d '{
     "name": "Алгоритмы и структуры данных",
@@ -38,11 +38,11 @@ curl -X POST http://localhost:8080/api/disciplines \
 
 
 ```bash
-curl http://localhost:8080/api/disciplines
+curl http://localhost:54254/api/disciplines
 ```
 
 ### 3. Получить дисциплину по ID
 
 ```bash
-curl http://localhost:8080/api/disciplines/{id}
+curl http://localhost:54254/api/disciplines/{id}
 ```
